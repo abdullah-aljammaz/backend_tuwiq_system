@@ -381,10 +381,34 @@ app.post(
   }
 );
 
+
+
 app.get("/getallsons", protect, async (req: Request, res: Response) => {
+  try{
   const sons = await prisma.son.findMany();
   res.json(sons);
+  }
+  catch(error){
+    res.status(500).json({ message: "An error occurred", error });
+  }
 });
+app.put("/setStudentInClass/:id", protect, async (req: Request, res: Response) => {
+
+  try{
+  const {id} = req.params
+  let newClass =  req.body as Son
+  let $class_name= await prisma.class.findFirst({where:{id:newClass.id},select:{name:true}})
+  await prisma.son.update({where:{id:id},data:{
+    class_id:newClass.id,
+    class_name:$class_name!.name
+  }})
+  res.json()
+}
+catch(error){
+  res.status(500).json({ message: "An error occurred", error });
+}
+});
+
 
 app.get(
   "/getSonsByFather",
