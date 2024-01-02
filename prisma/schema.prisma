@@ -26,16 +26,15 @@ model Son {
   lastname    String
   yearofbirth Int // Assuming birth year is numeric
   father_id   String
-  class_id    String?
   class_name  String?
   
   father      Father    @relation(fields: [father_id], references: [id])
-  class       Class?    @relation(fields: [class_id], references: [id])
+  class       Class?    @relation(fields: [class_name], references: [name])
   callouts    Callout[] // Corrected field name from "callout" to "callouts"
   role        Role
 
   @@index([father_id])
-  @@index([class_id])
+  @@index([class_name])
 }
 
 model Teacher {
@@ -44,18 +43,17 @@ model Teacher {
   password    String
   firstname   String
   lastname    String
-  class_id    String?
+  class_name    String?
   phonenumber String
-  class       Class?     @relation(fields: [class_id], references: [id])
+  class       Class?     @relation(fields: [class_name], references: [name])
   callouts    Callout[] // Corrected field name from "callout" to "callouts"
   role        Role
 
-  @@index([class_id])
+  @@index([class_name])
 }
 
 model Class {
-  id       String    @id @default(uuid())
-  name     String    @unique
+  name     String   @id
   students Son[]
   teachers Teacher[] // Corrected field name from "teacher" to "teachers"
   callouts Callout[]
@@ -70,19 +68,19 @@ model Callout {
   id         String  @id @default(uuid())
   father_id  String
   teacher_id String
-  class_id   String
+  class_name   String
   son_id     String
   status     Status
   father     Father  @relation(fields: [father_id], references: [id])
   teacher    Teacher @relation(fields: [teacher_id], references: [id])
   son        Son     @relation(fields: [son_id], references: [id])
-  class      Class   @relation(fields: [class_id], references: [id])
+  class      Class   @relation(fields: [class_name], references: [name])
 
   // Assuming a son can have only one active callout at a time
   @@index([father_id])
   @@index([son_id])
   @@index([teacher_id])
-  @@index([class_id])
+  @@index([class_name])
 }
 
 model Admin {
