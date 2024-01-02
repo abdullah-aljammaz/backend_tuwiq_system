@@ -13,8 +13,6 @@ app.use(cors());
 
 const PORT = 3003;
 
-
-
 // login
 async function login(req: Request, res: Response) {
   const { userType, email, password } = req.body;
@@ -108,7 +106,6 @@ async function getAllFathers(req: Request, res: Response) {
 }
 async function createAdmin(req: Request, res: Response) {
   const NewAdmin = req.body as Admin;
-  NewAdmin.role = "ADMIN";
   const hashedPassword = await argon2.hash(NewAdmin.password);
   NewAdmin.password = hashedPassword;
   NewAdmin.role = "ADMIN";
@@ -124,14 +121,17 @@ async function createAdmin(req: Request, res: Response) {
 }
 
 async function createClass(req: Request, res: Response) {
-  const {className, teacherId} = req.body;
+  const { className, teacherId } = req.body;
   try {
     await prisma.class.create({
-      data: {name: className},
+      data: { name: className },
     });
-    await prisma.teacher.update({where:{id:teacherId}, data:{
-      class_name:className
-    }})
+    await prisma.teacher.update({
+      where: { id: teacherId },
+      data: {
+        class_name: className,
+      },
+    });
     res.json("Class Created");
   } catch (error) {
     res.status(500).json({ message: "An error occurred", error });
@@ -146,6 +146,11 @@ async function getAllClasses(req: Request, res: Response) {
       teachers: true,
     },
   });
+  res.json(classes);
+}
+async function getClassByName(req: Request, res: Response) {
+  const class_name = req.query.class_name as string;
+  const classes = await prisma.class.findMany({where:{name:class_name},include:{students:true,teachers:true}})
   res.json(classes);
 }
 async function addTeacher(req: Request, res: Response) {
@@ -196,7 +201,6 @@ async function createSon(req: Request, res: Response) {
   }
 }
 
-
 function calculateDistance(
   lat1: number,
   lon1: number,
@@ -218,6 +222,38 @@ function calculateDistance(
   return distance;
 }
 
+async function getAllStudentByClassName(req: Request, res: Response) {
+  try {
+    let class_name = req.params;
+    let $name = class_name.class_name;
+    let all_student = await prisma.son.findMany({
+      where: { class_name: $name },
+    });
+    res.json({
+      numberOfStudents: all_student.length,
+      all_student,
+    });
+  } catch (error) {
+    console.error("Error getting class details:", error);
+    return res.status(500).json("Internal Server Error");
+  }
+}
+
+async function getAllTeacherByClassName(req: Request, res: Response) {
+  let class_name = req.params;
+  let $name = class_name.class_name;
+  try{
+  let all_student = await prisma.teacher.findMany({
+    where: { class_name: $name },
+  });
+  res.json(all_student);
+}
+catch (error) {
+  console.error("Error getting class details:", error);
+  return res.status(500).json("Internal Server Error");
+}
+}
+
 async function callStudent(req: Request, res: Response) {
   try {
     let user = res.locals.user;
@@ -227,28 +263,30 @@ async function callStudent(req: Request, res: Response) {
       where: { id: id },
       select: { class_name: true },
     });
-    const userLocation = req.body.location;
-    console.log(userLocation)
-    const targetLat = 24.85387;
-    const targetLon = 46.71298;
+    console.log("should be over a range");
 
-    if (!userLocation) {
-      return res.status(400).json("Location data is required");
+    const son = await prisma.son.findFirst({
+      where: { id: id },
+      select: { lastCallTime: true },
+    });
+    if (son?.lastCallTime) {
+      const lastCallTimestamp = son.lastCallTime.getTime();
+      const currentTimestamp = Date.now();
+      const timeDifferenceInMinutes =
+        (currentTimestamp - lastCallTimestamp) / (1000 * 60);
+      console.log(timeDifferenceInMinutes);
+      if (timeDifferenceInMinutes < 5) {
+        return res
+          .status(400)
+          .json(
+            "Cannot call the student again within 10 minutes of the last call."
+          );
+      }
     }
-
-    const distance = calculateDistance(
-      userLocation.latitude,
-      userLocation.longitude,
-      targetLat,
-      targetLon
-    );
-    console.log("should be over a range")
-    if (distance > 500) {
-      return res
-        .status(403)
-        .json("It should be over a range of 500 meters to order the son");
-    }
-
+    await prisma.son.update({
+      where: { id: id },
+      data: { lastCallTime: new Date() },
+    });
 
     if (!check) {
       return res.status(404).json("Invalid class ID for the student.");
@@ -315,27 +353,32 @@ async function getSonById(req: Request, res: Response) {
   res.json(son);
 }
 async function sendOut(req: Request, res: Response) {
-  const { calloutid } = req.params;
-
-  const check = await prisma.callout.findUnique({ where: { id: calloutid } });
+  let { id } = req.params;
+  try{
+    console.log(id)
+  const check = await prisma.callout.findFirst({ where: { id: id } });
+  console.log(check)
   if (!check) {
     return res.status(404).json("Callout not found");
   }
 
-  const updatedCallout = await prisma.callout.update({
-    where: { id: calloutid },
+  let updatedCallout = await prisma.callout.update({
+    where: { id: id },
     data: {
       status: "SendOut",
     },
   });
 
   res.json("done");
+} catch (error){
+    res.json("Error")
+  }
+
 }
 
 async function setStudentClass(req: Request, res: Response) {
   try {
-
-    let {class_name, student_id} = req.body;
+    let { class_name, student_id } = req.body;
     await prisma.son.update({
       where: { id: student_id },
       data: {
@@ -347,9 +390,19 @@ async function setStudentClass(req: Request, res: Response) {
     res.status(500).json({ message: "An error occurred", error });
   }
 }
+async function deleteSon(req: Request, res: Response) {
+  try {
+    let {id} = req.params
+    await prisma.son.delete({where:{id:id}})
+    res.json("Student Deleted")
+  } catch (error) {
+    res.status(500).json({ message: "An error occurred", error });
+  }
+}
 
 export {
   login,
+  deleteSon,
   registerFather,
   getAllCallouts,
   createAdmin,
@@ -367,4 +420,7 @@ export {
   sendOut,
   getSonById,
   setStudentClass,
+  getAllStudentByClassName,
+  getAllTeacherByClassName,
+  getClassByName,
 };

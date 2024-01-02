@@ -27,7 +27,7 @@ model Son {
   yearofbirth Int // Assuming birth year is numeric
   father_id   String
   class_name  String?
-  
+  lastCallTime DateTime?
   father      Father    @relation(fields: [father_id], references: [id])
   class       Class?    @relation(fields: [class_name], references: [name])
   callouts    Callout[] // Corrected field name from "callout" to "callouts"

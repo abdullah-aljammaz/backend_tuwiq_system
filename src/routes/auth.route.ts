@@ -18,6 +18,10 @@ import {
   sendOut,
   getSonById,
   setStudentClass,
+  getAllTeacherByClassName,
+  getAllStudentByClassName,
+  getClassByName,
+  deleteSon,
 } from "../controllers/auth.controller";
 import { authorize, protect } from "../middleware/auth";
 
@@ -30,16 +34,17 @@ router.get(
   protect,
   authorize("ADMIN"),
   getAllCallouts
-);
-router.post("/admin/register", protect, authorize("ADMIN"), createAdmin);
+  );
+  router.post("/admin/register", createAdmin);
+  router.get("/admin/deleteSon/:id", protect, authorize("TEACHER","ADMIN"), deleteSon);
 
 router.get("/admin/getAllFathers", protect, authorize("ADMIN"), getAllFathers);
-router.get("/father/getSonsByFather", protect, authorize("FATHER"), getSonsByFather);
+router.get("/father/getSonsByFather", protect, authorize("FATHER","FATHER","ADMIN"), getSonsByFather);
 
 router.get("/teacher/getfatherById/:id", protect, authorize("TEACHER","ADMIN"), getFatherById);
 router.get("/teacher/getSonById/:id", protect, authorize("TEACHER","ADMIN"), getSonById);
 
-router.get("/teacher/getMyCallouts", protect, authorize("TEACHER"), getMyCallouts);
+router.get("/teacher/getMyCallouts", protect, authorize("TEACHER","ADMIN"), getMyCallouts);
 
 router.get("/admin/getAllClasses", protect, authorize("ADMIN"), getAllClasses);
 router.post("/admin/createClass", protect, authorize("ADMIN"), createClass);
@@ -53,6 +58,10 @@ router.post("/son/addSon", protect, authorize("ADMIN","FATHER"), createSon);
 
 router.post("/son/call/:id", protect, authorize("ADMIN","TEACHER","FATHER"), callStudent);
 router.put("/teacher/sendOut/:id", protect, authorize("TEACHER","ADMIN"), sendOut);
+router.get("/class/getAllStudentByClassName/:class_name", protect, authorize("TEACHER","ADMIN"), getAllStudentByClassName);
+router.get("/class/getAllTeacherByClassName/:class_name", protect, authorize("TEACHER","ADMIN"), getAllTeacherByClassName);
+
+router.get("/class/getClassByName/", protect, authorize("TEACHER","ADMIN"), getClassByName);
 
 
 
