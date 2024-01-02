@@ -8,95 +8,93 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Father {
-  id          String    @id @default(uuid())
-  email       String    @unique
-  firstname   String
-  lastname    String
-  password    String
-  phonenumber String
-  sons        Son[] // Corrected field name from "son" to "sons"
-  callouts    Callout[] // Corrected field name from "Callout" to "callouts"
-  role        Role
-}
-
-model Son {
-  id          String    @id @default(uuid())
-  firstname   String
-  lastname    String
-  yearofbirth Int // Assuming birth year is numeric
-  father_id   String
-  class_id    String?
-  class_name  String?
-  
-  father      Father    @relation(fields: [father_id], references: [id])
-  class       Class?    @relation(fields: [class_id], references: [id])
-  callouts    Callout[] // Corrected field name from "callout" to "callouts"
-  role        Role
-
-  @@index([father_id])
-  @@index([class_id])
-}
-
-model Teacher {
-  id          String    @id @default(uuid())
-  email       String    @unique
-  password    String
-  firstname   String
-  lastname    String
-  class_id    String?
-  phonenumber String
-  class       Class?     @relation(fields: [class_id], references: [id])
-  callouts    Callout[] // Corrected field name from "callout" to "callouts"
-  role        Role
-
-  @@index([class_id])
-}
-
-model Class {
-  id       String    @id @default(uuid())
-  name     String    @unique
-  students Son[]
-  teachers Teacher[] // Corrected field name from "teacher" to "teachers"
-  callouts Callout[]
-}
-
-enum Status {
-  Waiting
-  SendOut
-}
-
-model Callout {
-  id         String  @id @default(uuid())
-  father_id  String
-  teacher_id String
-  class_id   String
-  son_id     String
-  status     Status
-  father     Father  @relation(fields: [father_id], references: [id])
-  teacher    Teacher @relation(fields: [teacher_id], references: [id])
-  son        Son     @relation(fields: [son_id], references: [id])
-  class      Class   @relation(fields: [class_id], references: [id])
-
-  // Assuming a son can have only one active callout at a time
-  @@index([father_id])
-  @@index([son_id])
-  @@index([teacher_id])
-  @@index([class_id])
-}
-
-model Admin {
-  id        String @id @default(uuid())
-  email     String @unique
-  password  String
-  firstname String
-  lastname  String
-  role      Role
-}
-
-enum Role {
-  FATHER
-  SON
-  TEACHER
+enum Roles {
   ADMIN
+  USER
+  SUPER_ADMIN
+}
+
+enum PaymentStatus {
+  pending
+  successful
+  failed
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String
+  role      Roles     @default(USER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  payments  Payment[]
+  tickets   Ticket[]
+  event     Event[]
+}
+
+model Event {
+  id              String     @id @default(uuid())
+  title           String     @unique
+  description     String
+  location        String
+  startDate       DateTime?
+  endDate         DateTime?
+  image           String?
+  avalible_ticket String
+  price           String
+  discount        String?    @default("0")
+  final_price     String
+  discount_end    DateTime?
+  category        Categories
+  admin_id        String
+  isBooked        Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  user            User       @relation(fields: [admin_id], references: [id])
+  tickets         Ticket[]
+
+  @@index([admin_id])
+}
+
+model Ticket {
+  id               String   @id @default(uuid())
+  eventId          String
+  qr_code          String   @default(dbgenerated("(UUID())"))
+  event            Event    @relation(fields: [eventId], references: [id])
+  bookedBy         String
+  number_of_guests String
+  bookedUser       User     @relation(fields: [bookedBy], references: [id])
+  price            String
+  bookingDate      DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([bookedBy])
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  user_id     String
+  card_name   String
+  card_number String
+  // card_cvv String
+  card_date   String
+  user        User     @relation(fields: [user_id], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@index([user_id])
+}
+
+enum Categories {
+  Restaurants
+  Experiences
+  Shows
+  Events
+  Hotels
+  Travels
 }
