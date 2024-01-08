@@ -399,6 +399,17 @@ async function deleteSon(req: Request, res: Response) {
     res.status(500).json({ message: "An error occurred", error });
   }
 }
+async function editClassName(req:Request, res:Response) {
+  try{
+    let {name} = req.params
+    let data = req.body as Class
+    await prisma.class.update({where:{name:name},data:data})
+    res.json("Updated")
+  }
+  catch (error){
+    res.status(500).json({ message: "An error occurred", error });
+  }
+}
 
 export {
   login,
@@ -423,4 +434,5 @@ export {
   getAllStudentByClassName,
   getAllTeacherByClassName,
   getClassByName,
+  editClassName
 };

@@ -22,6 +22,7 @@ import {
   getAllStudentByClassName,
   getClassByName,
   deleteSon,
+  editClassName,
 } from "../controllers/auth.controller";
 import { authorize, protect } from "../middleware/auth";
 
@@ -36,7 +37,7 @@ router.get(
   getAllCallouts
   );
   router.post("/admin/register", createAdmin);
-  router.get("/admin/deleteSon/:id", protect, authorize("TEACHER","ADMIN"), deleteSon);
+  router.delete("/admin/deleteSon/:id", protect, authorize("TEACHER","ADMIN"), deleteSon);
 
 router.get("/admin/getAllFathers", protect, authorize("ADMIN"), getAllFathers);
 router.get("/father/getSonsByFather", protect, authorize("FATHER","FATHER","ADMIN"), getSonsByFather);
@@ -62,6 +63,9 @@ router.get("/class/getAllStudentByClassName/:class_name", protect, authorize("TE
 router.get("/class/getAllTeacherByClassName/:class_name", protect, authorize("TEACHER","ADMIN"), getAllTeacherByClassName);
 
 router.get("/class/getClassByName/", protect, authorize("TEACHER","ADMIN"), getClassByName);
+
+// router.get("/class/editClassName/", protect, authorize("ADMIN"), getClassByName);
+router.put("/class/editClassName/:name", editClassName);
 
 
 
